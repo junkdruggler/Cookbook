@@ -10,18 +10,15 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
-import android.support.v4.view.ActionProvider;
-import android.support.v4.view.MenuItemCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.view.View;
 import android.widget.ImageView;
-import android.widget.ShareActionProvider;
 
 import com.afollestad.materialdialogs.DialogAction;
 import com.afollestad.materialdialogs.MaterialDialog;
+import com.junkdruggler.recipebook.R;
 import com.squareup.picasso.Callback;
 import com.squareup.picasso.Picasso;
 
@@ -29,14 +26,11 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 
-import com.junkdruggler.recipebook.R;
-
 
 public class DetailedWallpaperActivity extends AppCompatActivity {
 
-    public String wall;
-    private String saveWallLocation, picName, dialogContent;
-    private ActionProvider miShareAction;
+    private String saveWallLocation, picName, dialogContent, wall;
+    private ImageView image;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -52,7 +46,8 @@ public class DetailedWallpaperActivity extends AppCompatActivity {
         getSupportActionBar().setHomeButtonEnabled(true);
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
 
-        saveWallLocation = Environment.getExternalStorageDirectory().getAbsolutePath() + getResources().getString(R.string.walls_save_location);
+        saveWallLocation = Environment.getExternalStorageDirectory().getAbsolutePath()
+                + getResources().getString(R.string.walls_save_location);
         picName = getResources().getString(R.string.walls_prefix_name);
 
         dialogContent = getResources().getString(R.string.download_done) + saveWallLocation;
@@ -69,7 +64,7 @@ public class DetailedWallpaperActivity extends AppCompatActivity {
 
         }
 
-        ImageView image = (ImageView) findViewById(R.id.bigwall);
+        image = (ImageView) findViewById(R.id.bigwall);
         wall = getIntent().getStringExtra("wall");
         Picasso.with(this)
                 .load(wall)
@@ -95,35 +90,32 @@ public class DetailedWallpaperActivity extends AppCompatActivity {
 
         switch (item.getItemId()) {
             case R.id.download:
-                Picasso.with(this)
-                        .load(wall)
-                        .into(target);
-
-                showDownloadDialog(false);
+                downloadImage();
                 break;
-
             case R.id.sharewall:
-                miShareAction = MenuItemCompat.getActionProvider(item);
-
-                // Return true to display menu
+                shareRecipe();
                 break;
-
-
-
-
-
             case android.R.id.home:
                 finish();
-
+                break;
         }
         return true;
     }
 
-    public void onShareItem(View v) {
+    private void downloadImage(){
+        Picasso.with(this)
+                .load(wall)
+                .into(target);
+        showDownloadDialog(false);
+    }
+
+    //TODO: Make the share more smart by finding out which recipe has already been downloaded
+    private void shareRecipe() {
         // Get access to bitmap image from view
         ImageView ivImage = (ImageView) findViewById(R.id.bigwall);
         // Get access to the URI for the bitmap
-        Uri bmpUri = getLocalBitmapUri(ivImage);
+
+        Uri bmpUri = findLocalBitmapUri(ivImage);
         if (bmpUri != null) {
             // Construct a ShareIntent with link to image
             Intent shareIntent = new Intent();
@@ -136,66 +128,30 @@ public class DetailedWallpaperActivity extends AppCompatActivity {
             // ...sharing failed, handle error
         }
     }
-
-    // Returns the URI path to the Bitmap displayed in specified ImageView
-    public Uri getLocalBitmapUri(ImageView imageView) {
-        // Extract Bitmap from ImageView drawable
-        Drawable drawable = imageView.getDrawable();
-        Bitmap bmp = null;
-        if (drawable instanceof BitmapDrawable){
-            bmp = ((BitmapDrawable) imageView.getDrawable()).getBitmap();
-        } else {
-            return null;
-        }
-        // Store image to default external storage directory
-        Uri bmpUri = null;
-        try {
-            File file =  new File(Environment.getExternalStoragePublicDirectory(
-                    Environment.DIRECTORY_DOWNLOADS), "share_image_" + System.currentTimeMillis() + ".png");
-            file.getParentFile().mkdirs();
-            FileOutputStream out = new FileOutputStream(file);
-            bmp.compress(Bitmap.CompressFormat.PNG, 90, out);
-            out.close();
-            bmpUri = Uri.fromFile(file);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        return bmpUri;
-    }
-
-
-     {
-        // ...
-        // Get access to ImageView
-        ImageView ivImage = (ImageView) findViewById(R.id.bigwall);
-        // Load image async from remote URL, setup share when completed
-        Picasso.with(this).load(getLocalBitmapUri(ivImage)).into(ivImage, new Callback() {
-            @Override
-            public void onSuccess() {
-                // Setup share intent now that image has loaded
-                setupShareIntent();
+        // Returns the URI path to the Bitmap displayed in specified ImageView
+        public Uri findLocalBitmapUri(ImageView imageView) {
+            // Extract Bitmap from ImageView drawable
+            Drawable drawable = imageView.getDrawable();
+            Bitmap bmp = null;
+            if (drawable instanceof BitmapDrawable){
+                bmp = ((BitmapDrawable) imageView.getDrawable()).getBitmap();
+            } else {
+                return null;
             }
-
-            @Override
-            public void onError() {
-                // ...
+            // Store image to default external storage directory
+            Uri bmpUri = null;
+            try {
+                File file =  new File(saveWallLocation, "share_image_" + System.currentTimeMillis() + ".png");
+                file.getParentFile().mkdirs();
+                FileOutputStream out = new FileOutputStream(file);
+                bmp.compress(Bitmap.CompressFormat.PNG, 90, out);
+                out.close();
+                bmpUri = Uri.fromFile(file);
+            } catch (IOException e) {
+                e.printStackTrace();
             }
-        });
-    }
-
-    // Gets the image URI and setup the associated share intent to hook into the provider
-    public void setupShareIntent() {
-        // Fetch Bitmap Uri locally
-        ImageView ivImage = (ImageView) findViewById(R.id.bigwall);
-        Uri bmpUri = getLocalBitmapUri(ivImage); // see previous remote images section
-        // Create share intent as described above
-        Intent shareIntent = new Intent();
-        shareIntent.setAction(Intent.ACTION_SEND);
-        shareIntent.putExtra(Intent.EXTRA_STREAM, bmpUri);
-        shareIntent.setType("image/*");
-        // Attach share event to the menu item provider
-        miShareAction.setShareIntent(shareIntent);
-    }
+            return bmpUri;
+        }
 
 
     private final com.squareup.picasso.Target target = new com.squareup.picasso.Target() {
@@ -286,8 +242,73 @@ public class DetailedWallpaperActivity extends AppCompatActivity {
         }
     };
 
+
+    /**
+     * Taken from Apache Commons IO https://commons.apache.org/proper/commons-io/xref/org/apache/commons/io/FilenameUtils.html
+     * Gets the base name, minus the full path and extension, from a full filename.
+     * <p>
+     * This method will handle a file in either Unix or Windows format.
+     * The text after the last forward or backslash and before the last dot is returned.
+      <pre>
+     * a/b/c.txt --&gt; c
+     * a.txt     --&gt; a
+     * a/b/c     --&gt; c
+     * a/b/c/    --&gt; ""
+     * </pre>
+     * <p>
+     * The output will be the same irrespective of the machine that the code is running on.
+     *
+     * @param filename  the filename to query, null returns null
+     * @return the name of the file without the path, or an empty string if none exists
+     */
+
+    public static final char EXTENSION_SEPARATOR = '.';
+    private static final char UNIX_SEPARATOR = '/';
+    private static final char WINDOWS_SEPARATOR = '\\';
+
+    public static String getBaseName(final String filename) {
+        return removeExtension(getName(filename));
+    }
+    public static String getName(final String filename) {
+        if (filename == null) {
+            return null;
+        }
+        final int index = indexOfLastSeparator(filename);
+        return filename.substring(index + 1);
+    }
+
+    public static String removeExtension(final String filename) {
+        if (filename == null) {
+            return null;
+        }
+        final int index = indexOfExtension(filename);
+        if (index == -1) {
+            return filename;
+        } else {
+            return filename.substring(0, index);
+        }
+    }
+    public static int indexOfLastSeparator(final String filename) {
+        if (filename == null) {
+            return -1;
+        }
+        final int lastUnixPos = filename.lastIndexOf(UNIX_SEPARATOR);
+        final int lastWindowsPos = filename.lastIndexOf(WINDOWS_SEPARATOR);
+        return Math.max(lastUnixPos, lastWindowsPos);
+    }
+
+    public static int indexOfExtension(final String filename) {
+        if (filename == null) {
+            return -1;
+        }
+        final int extensionPos = filename.lastIndexOf(EXTENSION_SEPARATOR);
+        final int lastSeparator = indexOfLastSeparator(filename);
+        return lastSeparator > extensionPos ? -1 : extensionPos;
+    }
+
     private String convertWallName(String link) {
-        return (link
+        return (getBaseName(link));
+        /*return (link
                 .replaceAll("png", "")                   // Deletes png extension
                 .replaceAll("jpg", "")                   // Deletes jpg extension
                 .replaceAll("jpeg", "")                  // Deletes jpeg extension
@@ -301,7 +322,7 @@ public class DetailedWallpaperActivity extends AppCompatActivity {
                 .replaceAll(getResources().getString(R.string.replace_four), "")
                 .replaceAll(getResources().getString(R.string.replace_five), "")
                 .replaceAll(getResources().getString(R.string.replace_six), "")
-                .replaceAll(getResources().getString(R.string.replace_seven), "");
+                .replaceAll(getResources().getString(R.string.replace_seven), "");*/
 
     }
 
@@ -436,7 +457,7 @@ public class DetailedWallpaperActivity extends AppCompatActivity {
                 .show();
     }
 
-    public Uri get (ImageView imageView) {
+    public Uri getLocalBitmapUri(ImageView imageView) {
         Drawable drawable = imageView.getDrawable();
         Bitmap bmp;
         if (drawable instanceof BitmapDrawable)
