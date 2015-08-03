@@ -81,7 +81,7 @@
     <!-- Strings for Wallpapers and Requests -->
     <string name="request_save_location">"/Recipes/Requests/"</string>
     <string name="walls_save_location">"/Recipes/Wallpapers/"</string>
-    <string name="walls_prefix_name">"Recipes__"</string>
+    <string name="walls_prefix_name">"Recipes_"</string>
 
     <!-- Messages shown when using LicenseChecker -->
     <string name="license_failed">"You are not downloading Recipes by Cheffy from Google Play Store. You have two options only:"</string>

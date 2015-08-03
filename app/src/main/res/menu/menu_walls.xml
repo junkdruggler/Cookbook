@@ -13,7 +13,6 @@
         android:orderInCategory="200"
         android:title="@string/apply"
         android:icon="@drawable/ic_check"
-        app:showAsAction="ifRoom"
-        app:actionProviderClass="android.support.v7.widget.ShareActionProvider"/>
+        app:showAsAction="ifRoom" />
 
 </menu>
